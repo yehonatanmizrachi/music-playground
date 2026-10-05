@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>מגרש מוזיקה</title>
+<meta name="description" content="אוסף תרגילים מוזיקליים אינטראקטיביים בדפדפן">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎹</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Assistant:wght@400;600;700&family=Secular+One&family=Noto+Music&display=swap">
+<style>
+/* Same design tokens as the exercises, so moving between pages feels like one site */
+:root{
+  --paper:#EEF0EC; --surface:#FFFFFF; --ink:#1A1F2B; --muted:#5B6270; --rule:#D4D8DD;
+  --accent:#2D47B8; --accent-soft:#E3E8FA;
+  --f-display:"Secular One","Assistant",system-ui,sans-serif;
+  --f-body:"Assistant",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-music:"Noto Music","Bravura","Segoe UI Symbol","Apple Symbols",serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --paper:#111418; --surface:#1A1E24; --ink:#E6E8EC; --muted:#9AA1AD; --rule:#2F353F;
+  --accent:#93A5FF; --accent-soft:#252D4D; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --paper:#111418; --surface:#1A1E24; --ink:#E6E8EC; --muted:#9AA1AD; --rule:#2F353F;
+  --accent:#93A5FF; --accent-soft:#252D4D; color-scheme:dark}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--paper);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.5;
+  padding-inline:16px;padding-block:calc(28px + env(safe-area-inset-top,0px)) calc(40px + env(safe-area-inset-bottom,0px))}
+.wrap{max-width:880px;margin:0 auto;display:flex;flex-direction:column;gap:28px}
+header{display:flex;flex-direction:column;gap:6px}
+h1{font-family:var(--f-display);font-weight:400;font-size:2.2rem;margin:0;line-height:1.15}
+.lede{margin:0;color:var(--muted);font-size:1.05rem;max-width:52ch}
+h2{font-size:.85rem;font-weight:700;color:var(--muted);letter-spacing:.04em;margin:0 0 10px}
+.grid{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
+.ex{display:flex;flex-direction:column;gap:8px;height:100%;background:var(--surface);border:1px solid var(--rule);border-radius:14px;
+  padding:16px;color:inherit;text-decoration:none;transition:border-color .15s,transform .15s}
+a.ex:hover{border-color:var(--accent);transform:translateY(-2px)}
+a.ex:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.glyph{width:52px;height:52px;border-radius:12px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;
+  font-family:var(--f-music);font-size:2rem;line-height:1}
+.ex h3{font-family:var(--f-display);font-weight:400;font-size:1.3rem;margin:4px 0 0}
+.ex p{margin:0;color:var(--muted);font-size:.95rem;flex:1}
+.tags{display:flex;flex-wrap:wrap;gap:6px}
+.tags span{font-size:.75rem;font-weight:600;color:var(--muted);border:1px solid var(--rule);border-radius:999px;padding:1px 9px}
+.ex.soon{background:transparent;border-style:dashed;justify-content:center;align-items:center;text-align:center;min-height:180px}
+.ex.soon .glyph{background:transparent;color:var(--muted)}
+footer{color:var(--muted);font-size:.85rem;border-top:1px solid var(--rule);padding-top:14px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>מגרש מוזיקה</h1>
+    <p class="lede">תרגילים קצרים לנגינה, קריאת תווים ושמיעה. הכול רץ בדפדפן, בלי התקנה ובלי הרשמה.</p>
+  </header>
+
+  <main>
+    <h2>תרגילים</h2>
+    <!-- To add an exercise: put its page in exercises/ and copy one <li> below -->
+    <ul class="grid">
+      <li>
+        <a class="ex" href="exercises/sight-reading.html">
+          <span class="glyph" aria-hidden="true">𝄞</span>
+          <h3>תווים בקצב</h3>
+          <p>קוראים תו, קווינטה או משולש מהחמשה ומנגנים בפסנתר לפני שהפעמות נגמרות. המיקרופון שומע אם צדקת, והקצב עולה ככל שמצליחים.</p>
+          <div class="tags"><span>פסנתר</span><span>קריאת תווים</span><span>מיקרופון</span></div>
+        </a>
+      </li>
+      <li>
+        <div class="ex soon">
+          <span class="glyph" aria-hidden="true">♪</span>
+          <p>עוד תרגילים בדרך</p>
+        </div>
+      </li>
+    </ul>
+  </main>
+
+  <footer>מגרש מוזיקה · קוד פתוח</footer>
+</div>
+</body>
+</html>

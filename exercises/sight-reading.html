@@ -33,6 +33,8 @@ body{background:var(--paper);color:var(--ink);font-family:var(--f-body);font-siz
   padding-inline:16px;padding-block:calc(16px + env(safe-area-inset-top,0px)) calc(32px + env(safe-area-inset-bottom,0px))}
 .wrap{max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
 header{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.back{align-self:flex-start;font-size:.9rem;font-weight:600;color:var(--muted);text-decoration:none;margin-bottom:-6px}
+.back:hover{color:var(--accent)}
 h1{font-family:var(--f-display);font-weight:400;font-size:1.7rem;margin:0;letter-spacing:.01em}
 .mic{font-size:.85rem;color:var(--muted);display:flex;align-items:center;gap:6px}
 .dot{width:8px;height:8px;border-radius:50%;background:var(--rule)}
@@ -86,12 +88,13 @@ select{font:inherit;padding:6px 8px;border-radius:8px;border:1px solid var(--rul
 .keys .b:active,.keys .b.hit{background:var(--accent)}
 .note{font-size:.85rem;color:var(--muted)}
 .warn{background:var(--accent-soft);border-radius:10px;padding:10px 12px;font-size:.9rem}
-button:focus-visible,select:focus-visible,input:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+a:focus-visible,button:focus-visible,select:focus-visible,input:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
 <body>
 <div class="wrap">
+  <a class="back" href="../index.html">→ כל התרגילים</a>
   <header>
     <h1>תווים בקצב</h1>
     <div class="mic"><span class="dot" id="micDot"></span><span id="micTxt">מיקרופון כבוי</span></div>
