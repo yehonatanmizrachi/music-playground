@@ -462,7 +462,7 @@ function onBeat(){
   }
   if (!item.started){ item.started = true; beatsElapsed = 1; itemStart = ctx.currentTime; click(true); setPrompt(itemPrompt(item)); renderItem(); return; }
   const total = S.beatsPer * item.notes.length;
-  if (item.done || beatsElapsed >= total){
+  if (beatsElapsed >= total){   // even after a correct answer, wait out all the beats
     if (!item.done){
       item.missed = true; stats.miss++; stats.streak = 0;
       if (S.auto) setBpm(S.bpm - 6);
@@ -490,10 +490,10 @@ function tick(){
         nextBeat += 60 / S.bpm;
         if (nextBeat < now) nextBeat = now + 60 / S.bpm;
       }
-      if (item && item.started && !item.done){
+      if (item && item.started){
         const total = S.beatsPer * item.notes.length * 60 / S.bpm;
         $('bar').style.width = Math.min(100, (now - itemStart) / total * 100) + '%';
-      } else if (item && item.done) $('bar').style.width = '100%';
+      }
     }
   }
   requestAnimationFrame(tick);
