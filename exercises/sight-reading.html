@@ -44,6 +44,11 @@ h1{font-family:var(--f-display);font-weight:400;font-size:1.7rem;margin:0;letter
 .seg button[aria-pressed="true"]{background:var(--accent);color:var(--surface)}
 .card{background:var(--surface);border:1px solid var(--rule);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:10px}
 .staff{direction:ltr;width:100%;height:auto;display:block}
+.upnext{display:flex;align-items:center;gap:8px;direction:ltr;border-top:1px solid var(--rule);padding-top:8px}
+.upnext span{font-size:.8rem;color:var(--muted);direction:rtl;flex:0 0 auto}
+.upnext .minis{flex:1;min-width:0;display:grid;grid-template-columns:repeat(3,1fr);gap:4px}
+.upnext svg{width:100%;height:auto;display:block;opacity:.55}
+.upnext svg:first-child{opacity:.8}
 .label{font-family:var(--f-display);font-size:1.5rem;text-align:center;min-height:2.2rem}
 .prompt{text-align:center;color:var(--muted);font-size:.95rem;min-height:1.4rem}
 .prompt.ok{color:var(--ok);font-weight:700}
@@ -109,6 +114,7 @@ a:focus-visible,button:focus-visible,select:focus-visible,input:focus-visible,su
   <div class="card">
     <svg class="staff" id="staff" viewBox="0 0 360 180" role="img" aria-label="חמשה"></svg>
     <div class="label" id="label"></div>
+    <div class="upnext"><div class="minis" id="upnext"></div><span>הבאים</span></div>
     <div class="prompt" id="prompt">לחץ "התחל", תקבל ארבע פעמות ספירה ואז התו הראשון.</div>
     <div class="beats" id="beats"></div>
     <div class="bar"><span id="bar"></span></div>
@@ -216,7 +222,7 @@ function randomRoot(c){
 }
 
 let prevItem = null;
-function genItem(){
+function genItem(prev = prevItem){
   for (let tries = 0; tries < 400; tries++){
     const clefKey = S.clef === 'both' ? pick(['treble','bass']) : S.clef;
     const c = CLEFS[clefKey];
@@ -236,8 +242,8 @@ function genItem(){
     }
     if (!S.acc && notes.some(n => n.acc !== 0)) continue;
     if (notes.some(n => n.step < c.lo || n.step > c.hi)) continue;
-    if (prevItem){
-      const prevPcs = prevItem.notes.map(n => ((n.midi%12)+12)%12);
+    if (prev){
+      const prevPcs = prev.notes.map(n => ((n.midi%12)+12)%12);
       if (prevPcs.includes(((notes[0].midi%12)+12)%12)) continue;
     }
     return {notes, clef:clefKey, kind, quality, dir, idx:0, done:false, missed:false, errors:0, started:false};
@@ -257,25 +263,35 @@ function itemPrompt(it){
 
 // ---------- staff drawing ----------
 const NS = 'http://www.w3.org/2000/svg';
-const GAP = 12, HALF = 6, BOTTOM_Y = 118, X0 = 18, X1 = 342;
+const GAP = 12, HALF = 6, BOTTOM_Y = 118, X0 = 18;
+const MAIN = {x1:342, xs:[[210], [170, 260], [150, 220, 290]]};
+const MINI = {x1:192, xs:[[132], [108, 162], [92, 134, 176]]};
 function el(tag, attrs, text){
   const e = document.createElementNS(NS, tag);
   for (const k in attrs) e.setAttribute(k, attrs[k]);
   if (text != null) e.textContent = text;
   return e;
 }
-function drawStaff(it, reveal){
-  const svg = $('staff'); svg.textContent = '';
+const inkCanvas = document.createElement('canvas').getContext('2d');
+function glyphInk(g){
+  inkCanvas.font = '100px ' + getComputedStyle(document.documentElement).getPropertyValue('--f-music');
+  const m = inkCanvas.measureText(g);
+  return {asc:m.actualBoundingBoxAscent, desc:m.actualBoundingBoxDescent, left:m.actualBoundingBoxLeft};
+}
+function drawStaff(it, reveal, svg = $('staff'), L = MAIN){
+  const X1 = L.x1; svg.textContent = '';
   const clefKey = it ? it.clef : (S.clef === 'bass' ? 'bass' : 'treble');
   const c = CLEFS[clefKey];
   for (let i = 0; i < 5; i++) svg.appendChild(el('line', {x1:X0, x2:X1, y1:BOTTOM_Y - i*GAP, y2:BOTTOM_Y - i*GAP, stroke:'var(--ink)', 'stroke-width':1.2, opacity:.75}));
   svg.appendChild(el('line', {x1:X0, x2:X0, y1:BOTTOM_Y-4*GAP, y2:BOTTOM_Y, stroke:'var(--ink)', 'stroke-width':1.2, opacity:.75}));
   svg.appendChild(el('line', {x1:X1, x2:X1, y1:BOTTOM_Y-4*GAP, y2:BOTTOM_Y, stroke:'var(--ink)', 'stroke-width':1.2, opacity:.75}));
-  if (clefKey === 'treble') svg.appendChild(el('text', {x:24, y:BOTTOM_Y-GAP+1, 'font-size':76, fill:'var(--ink)', 'font-family':'var(--f-music)'}, c.glyph));
-  else svg.appendChild(el('text', {x:26, y:BOTTOM_Y-3*GAP+1, 'font-size':50, fill:'var(--ink)', 'font-family':'var(--f-music)'}, c.glyph));
+  // clef glyphs sit differently in every font, so size and place them by their measured ink box
+  const [top, bottom] = clefKey === 'treble' ? [BOTTOM_Y-4*GAP-20, BOTTOM_Y+18] : [BOTTOM_Y-4*GAP+2, BOTTOM_Y-GAP+1];
+  const ink = glyphInk(c.glyph), fs = 100 * (bottom - top) / (ink.asc + ink.desc);
+  svg.appendChild(el('text', {x:26 + ink.left*fs/100, y:top + ink.asc*fs/100, 'font-size':fs, fill:'var(--ink)', 'font-family':'var(--f-music)'}, c.glyph));
   if (!it) return;
   const n = it.notes.length;
-  const xs = n === 1 ? [210] : n === 2 ? [170, 260] : [150, 220, 290];
+  const xs = L.xs[n-1];
   const topStep = c.bottom + 8;
   it.notes.forEach((note, i) => {
     const x = xs[i], y = BOTTOM_Y - (note.step - c.bottom)*HALF;
@@ -307,16 +323,34 @@ function setBpm(v){ S.bpm = Math.max(30, Math.min(180, Math.round(v))); $('bpm')
 
 function onSettingsChange(){
   // a new setting applies from the next item; when idle, show a fresh preview
-  if (!running){ prevItem = null; item = genItem(); renderItem(); }
-  else pendingRegen = true;
+  if (!running){ prevItem = null; item = genItem(); }
+  queue = [];
+  renderItem();
 }
-let pendingRegen = false;
+
+// upcoming items, shown as small staves under the current one
+const AHEAD = 3;
+let queue = [];
+function fillQueue(){
+  while (queue.length < AHEAD) queue.push(genItem(queue.length ? queue[queue.length-1] : item));
+}
+function renderUpnext(){
+  fillQueue();
+  const box = $('upnext');
+  while (box.childElementCount < AHEAD){
+    const svg = document.createElementNS(NS, 'svg');
+    svg.setAttribute('viewBox', '0 0 200 180'); svg.setAttribute('aria-hidden', 'true');
+    box.appendChild(svg);
+  }
+  queue.forEach((q, i) => drawStaff(q, S.names === 'always', box.children[i], MINI));
+}
 
 function setPrompt(text, cls){ const p = $('prompt'); p.textContent = text; p.className = 'prompt' + (cls ? ' ' + cls : ''); }
 function renderItem(){
   const reveal = item && (S.names === 'always' || (S.names === 'after' && (item.done || item.missed)));
   drawStaff(item, reveal);
   $('label').textContent = item && reveal ? itemLabel(item) : '';
+  renderUpnext();
   renderBeats();
 }
 function renderBeats(){
@@ -446,8 +480,8 @@ function heard(midi, src){
   }
 }
 function nextItem(){
-  prevItem = item; pendingRegen = false;
-  item = genItem(); item.started = true;
+  prevItem = item;
+  fillQueue(); item = queue.shift(); item.started = true;
   beatsElapsed = 1; itemStart = ctx.currentTime;
   lastAccepted = cand;  // a still-ringing note does not count for the new item
   setPrompt(itemPrompt(item));
@@ -503,7 +537,7 @@ async function start(){
   ensureCtx();
   await initMic();
   stats.ok = stats.miss = stats.streak = 0; renderStats();
-  prevItem = null; item = genItem();
+  prevItem = null; item = genItem(); queue = [];
   countIn = 4; beatsElapsed = 0; running = true;
   nextBeat = ctx.currentTime + 0.25;
   $('go').textContent = 'עצור'; $('go').classList.add('stop');
@@ -549,6 +583,7 @@ $('go').addEventListener('click', () => running ? stop() : start());
 
 item = genItem();
 renderItem(); renderStats();
+if (document.fonts) document.fonts.ready.then(renderItem);   // re-fit the clefs once the music font arrives
 requestAnimationFrame(tick);
 })();
 </script>
