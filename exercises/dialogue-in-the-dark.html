@@ -166,7 +166,7 @@ a:focus-visible,button:focus-visible,select:focus-visible,input:focus-visible,su
         <select id="names"><option value="after">אחרי הניגון</option><option value="always">תמיד</option><option value="never">אף פעם</option></select></div>
       <div class="row"><label for="dark">מסך שחור בזמן תרגול</label><input type="checkbox" class="switch" id="dark">
         <span class="hint">נגיעה במסך משמיעה שוב, Esc או הכפתור למטה עוצרים. גם מקש רווח משמיע שוב.</span></div>
-      <div class="row"><label for="acc">דיאזים ובמולים</label><input type="checkbox" class="switch" id="acc"></div>
+      <div class="row"><label for="acc">דיאזים ובמולים</label><input type="checkbox" class="switch" id="acc" checked></div>
       <div class="row"><label for="beatsPer">פעמות לכל תו</label>
         <select id="beatsPer"><option>2</option><option>3</option><option selected>4</option><option>6</option><option>8</option></select></div>
       <div class="row"><label for="fifthDir">כיוון הקווינטה</label>
@@ -209,7 +209,7 @@ const SHARP_PC = [[0,0],[0,1],[1,0],[1,1],[2,0],[3,0],[3,1],[4,0],[4,1],[5,0],[5
 const $ = id => document.getElementById(id);
 
 // ---------- settings ----------
-const defaults = {mode:'single', hand:'right', names:'after', naming:'sol', voice:'', rate:1, dark:false, acc:false, beatsPer:4,
+const defaults = {mode:'single', hand:'right', names:'after', naming:'sol', voice:'', rate:1, dark:false, acc:true, beatsPer:4,
   fifthDir:'up', quality:'both', spell:false, exactOct:false, cues:true, click:true, sens:6, bpm:40, auto:true};
 let S = Object.assign({}, defaults);
 try { const saved = JSON.parse(localStorage.getItem('dialogue-in-the-dark') || '{}'); Object.assign(S, saved); } catch(e) {}
