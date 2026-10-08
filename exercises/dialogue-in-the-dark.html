@@ -201,8 +201,8 @@ a:focus-visible,button:focus-visible,select:focus-visible,input:focus-visible,su
 'use strict';
 const LET = ['C','D','E','F','G','A','B'];
 const SOL = ['דו','רה','מי','פה','סול','לה','סי'];
-// What the speech engine gets. A bare "A" would be read as the English article.
-const SAY_LET = ['C','D','E','F','G','Ay','B'];
+// What the speech engine gets. "Ay" was read as "I" by some voices; "A sharp" can turn into the article, so sayNote puts a dash after A.
+const SAY_LET = ['C','D','E','F','G','A','B'];
 const NAT = [0,2,4,5,7,9,11];
 const ACC = {'-1':'♭','0':'','1':'♯'};
 const SHARP_PC = [[0,0],[0,1],[1,0],[1,1],[2,0],[3,0],[3,1],[4,0],[4,1],[5,0],[5,1],[6,0]];
@@ -301,7 +301,7 @@ function itemPrompt(it){
 
 // ---------- what is said (always English; the screen still follows the naming setting) ----------
 function sayNote(n, withOct){
-  const acc = n.acc ? (n.acc > 0 ? ' sharp' : ' flat') : '';
+  const acc = n.acc ? (n.letter === 5 ? ' - ' : ' ') + (n.acc > 0 ? 'sharp' : 'flat') : '';
   return SAY_LET[n.letter] + acc + (withOct && S.exactOct ? ', octave ' + n.oct : '');
 }
 function spoken(it, spell = S.spell){
