@@ -389,7 +389,7 @@ function renderStats(){ $('sOk').textContent = stats.ok; $('sMiss').textContent 
 
 // ---------- audio ----------
 // quietUntil: the mic ignores everything until then, so it doesn't "hear" our own speech, chimes or buzzes
-let ctx = null, analyser = null, stream = null, buf = null, lastClick = -1, quietUntil = 0;
+let ctx = null, analyser = null, stream = null, buf = null, lastClick = -1, quietUntil = 0, cueEnd = 0;
 function ensureCtx(){ if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)(); if (ctx.state === 'suspended') ctx.resume(); }
 // clicks are scheduled on the audio clock at the exact beat time, so speech or a busy page never shifts them
 function click(accent, t){
@@ -414,6 +414,7 @@ function cue(kind, t = ctx && ctx.currentTime){
   else if (kind === 'step') blip(1100, .08, 'sine', .16, d);
   else blip(130, .25, 'square', .1, d);
   quietUntil = Math.max(quietUntil, ctx.currentTime + d + 0.4);
+  cueEnd = Math.max(cueEnd, ctx.currentTime + d + (kind === 'ok' ? 0.34 : kind === 'step' ? 0.1 : 0.27));
 }
 function tone(midi){
   ensureCtx();
@@ -533,8 +534,8 @@ function startItem(t, keepPrompt){
   if (keepPrompt) flashTimer = setTimeout(() => { if (item && !item.done && !item.missed) setPrompt(itemPrompt(item)); }, 900);
   else setPrompt(itemPrompt(item));
   renderItem();
-  // onBeat runs a little ahead of the beat; speak on the beat itself
-  setTimeout(() => { if (running) announce(); }, Math.max(0, (t - ctx.currentTime) * 1000));
+  // onBeat runs a little ahead of the beat; speak on the beat itself, or once a still-sounding cue ends
+  setTimeout(() => { if (running) announce(); }, Math.max(0, (Math.max(t, cueEnd) - ctx.currentTime) * 1000));
 }
 function onBeat(t){
   if (countIn > 0){
@@ -552,7 +553,13 @@ function onBeat(t){
   }
   const total = S.beatsPer * item.notes.length;
   if (beatsElapsed >= total){   // even after a correct answer, wait out all the beats
-    // feedback beat: the miss buzz (or a late chime) gets a beat of its own, so it never talks over the next announcement
+    // a clean answer goes straight on; its chime already sounded
+    if (item.done && !item.errors){
+      prevItem = item; item = genItem();
+      click(true, t); startItem(t);
+      return;
+    }
+    // feedback beat: the miss buzz gets a beat of its own, so it never talks over the next announcement
     if (!item.done){
       item.missed = true; stats.miss++; stats.streak = 0;
       if (S.auto) setBpm(S.bpm - 6);
