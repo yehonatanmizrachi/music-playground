@@ -498,7 +498,7 @@ function listen(){
 
 // ---------- practice engine ----------
 const LOOKAHEAD = 0.2;   // seconds: each beat is handled this early and its click queued for the exact time
-let running = false, item = null, beatsElapsed = 0, countIn = 0, nextBeat = 0, itemStart = 0, flashTimer = 0;
+let running = false, item = null, beatsElapsed = 0, countIn = 0, nextBeat = 0, itemStart = 0, flashTimer = 0, gap = false;
 function heard(midi, src){
   if (!running || !item || !item.started || item.done || item.missed) return;
   const exp = item.notes[item.idx];
@@ -525,10 +525,13 @@ function heard(midi, src){
     flashTimer = setTimeout(() => { if (item && !item.done && !item.missed) setPrompt(itemPrompt(item)); }, 900);
   }
 }
-function startItem(t){
+function startItem(t, keepPrompt){
   item.started = true; beatsElapsed = 1; itemStart = t;
   lastAccepted = cand;  // a still-ringing note does not count for the new item
-  setPrompt(itemPrompt(item));
+  clearTimeout(flashTimer);
+  // after a miss, leave "it was X" up a little longer before the new instruction
+  if (keepPrompt) flashTimer = setTimeout(() => { if (item && !item.done && !item.missed) setPrompt(itemPrompt(item)); }, 900);
+  else setPrompt(itemPrompt(item));
   renderItem();
   // onBeat runs a little ahead of the beat; speak on the beat itself
   setTimeout(() => { if (running) announce(); }, Math.max(0, (t - ctx.currentTime) * 1000));
@@ -541,22 +544,25 @@ function onBeat(t){
     return;
   }
   if (!item.started){ click(true, t); startItem(t); return; }
+  if (gap){   // the beat after the feedback beat: announce the next item
+    gap = false;
+    prevItem = item; item = genItem();
+    click(true, t); startItem(t, prevItem.missed);
+    return;
+  }
   const total = S.beatsPer * item.notes.length;
   if (beatsElapsed >= total){   // even after a correct answer, wait out all the beats
+    // feedback beat: the miss buzz (or a late chime) gets a beat of its own, so it never talks over the next announcement
     if (!item.done){
       item.missed = true; stats.miss++; stats.streak = 0;
       if (S.auto) setBpm(S.bpm - 6);
       renderStats();
       cue('bad', t);
-    }
-    const missedItem = item.missed ? item : null;
-    prevItem = item; item = genItem();
-    click(true, t); startItem(t);
-    if (missedItem){
-      setPrompt('פספוס. זה היה ' + itemLabel(missedItem), 'bad');
       clearTimeout(flashTimer);
-      flashTimer = setTimeout(() => { if (item && !item.done) setPrompt(itemPrompt(item)); }, 1600);
+      setPrompt('פספוס. זה היה ' + itemLabel(item), 'bad');
     }
+    gap = true;
+    click(false, t); renderItem();
     return;
   }
   beatsElapsed++; click(false, t); renderBeats();
@@ -586,7 +592,7 @@ async function start(){
   await initMic();
   stats.ok = stats.miss = stats.streak = 0; renderStats();
   prevItem = null; item = genItem();
-  countIn = 4; beatsElapsed = 0; running = true;
+  countIn = 4; beatsElapsed = 0; gap = false; running = true;
   nextBeat = ctx.currentTime + 0.25;
   $('go').textContent = 'עצור'; $('go').classList.add('stop');
   $('blackout').hidden = !S.dark;
