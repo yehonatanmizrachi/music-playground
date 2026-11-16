@@ -56,6 +56,8 @@ canvas{width:100%;height:150px;display:block;border-radius:8px;background:var(--
 /* per-band accuracy so far: a thin strip along the bottom of each button */
 .bands button i{position:absolute;left:0;bottom:0;height:3px;background:var(--ok);opacity:.7}
 .bands button i.low{background:var(--bad)}
+/* a band the current sound has (almost) nothing in: never asked, still clickable for comparison */
+.bands button.off{opacity:.38;border-style:dashed}
 .next{font:inherit;font-weight:700;border:0;border-radius:10px;padding:12px;background:var(--accent);color:var(--surface);cursor:pointer}
 .next[hidden],.dir[hidden]{display:none}
 .transport{display:flex;gap:10px;align-items:stretch}
@@ -122,9 +124,14 @@ a:focus-visible,button:focus-visible,select:focus-visible,input:focus-visible,su
     <div class="pick">
       <label>רמה <select id="level"></select></label>
       <label>צליל <select id="source">
-        <option value="groove">גרוב (להקה מסונתזת)</option>
-        <option value="pink">רעש ורוד</option>
-        <option value="file">שיר משלי…</option>
+        <optgroup label="כלים מוקלטים" id="recGroup"></optgroup>
+        <optgroup label="מסונתז">
+          <option value="groove">גרוב (להקה מסונתזת)</option>
+          <option value="pink">רעש ורוד</option>
+        </optgroup>
+        <optgroup label="משלי">
+          <option value="file">שיר משלי…</option>
+        </optgroup>
       </select></label>
     </div>
   </div>
@@ -161,6 +168,7 @@ a:focus-visible,button:focus-visible,select:focus-visible,input:focus-visible,su
       <div>בכל סבב מופעל פס אחד באקולייזר על המוזיקה. עוברים בין <b>A</b> (מקור) ל-<b>B</b> (עם אקולייזר) כמה שרוצים, ואז בוחרים את התדר שלדעתך השתנה.</div>
       <div>אחרי התשובה אפשר ללחוץ על כל פס כדי לשמוע אותו: כך שומעים את ההבדל בין מה שניחשת למה שהיה באמת.</div>
       <div>מקלדת: רווח מחליף A/B · Enter לסבב הבא.</div>
+      <div>כל צליל מאמן משהו אחר: בס ותופים לתחתית, חליל וכינור לאמצע ולעליון, להקה וג׳אז לתמונה המלאה. כפתור מקווקו ודהוי הוא תדר שבצליל הנוכחי כמעט אין בו תוכן, ולכן הוא לא יופיע כשאלה.</div>
       <div>אוזניות או רמקולים טובים עושים הבדל גדול, במיוחד בתדרים הנמוכים.</div>
     </div>
   </details>
@@ -206,7 +214,7 @@ try{saved=JSON.parse(localStorage.getItem(KEY))||{}}catch(e){}
 const st={
   mode:'quiz', phase:'idle',           // phase (quiz only): idle | guess | reveal
   playing:false, ab:'B',
-  level:Math.min(saved.level||0,LEVELS.length-1), source:saved.source==='pink'?'pink':'groove',
+  level:Math.min(saved.level||0,LEVELS.length-1), source:saved.source||'groove',
   target:null, dir:1, guess:null, aud:null,   // aud = band being auditioned after the reveal
   exBand:null, exDir:1,
   recent:[], ok:0, miss:0, streak:0, best:saved.best||0,
@@ -226,7 +234,9 @@ function initAudio(){
   analyser=ac.createAnalyser();analyser.fftSize=4096;analyser.smoothingTimeConstant=.82;
   spec=new Uint8Array(analyser.frequencyBinCount);
   srcGain=ac.createGain();
-  srcGain.connect(filter).connect(master).connect(ac.destination);
+  // safety limiter: only touches peaks, so a big boost never turns into clipping distortion
+  const lim=ac.createDynamicsCompressor();lim.threshold.value=-2;lim.knee.value=0;lim.ratio.value=20;lim.attack.value=.002;lim.release.value=.1;
+  srcGain.connect(filter).connect(master).connect(lim).connect(ac.destination);
   srcGain.connect(analyser);          // pre-EQ on purpose
 }
 function normalise(buf,peakTo){
@@ -305,21 +315,51 @@ async function makeGroove(){
   }
   return oc.startRendering();
 }
+/* Recorded loops live in audio/ (rendered by tools/render-loops.py from CC0 / free instrument samples).
+   They are mastered to the same loudness, so they share one gain instead of peak-normalising. */
+let LOOPS=[];
+const REC_GAIN=.69;   // all sources sit around -24 dB RMS, leaving room for a +12 dB boost
+const loopInfo=id=>LOOPS.find(l=>l.id===id);
 async function getBuffer(kind){
   if(buffers[kind])return buffers[kind];
   if(kind==='file')return null;
+  const rec=loopInfo(kind);
+  if(rec){
+    const res=await fetch('audio/'+rec.file);
+    if(!res.ok)throw new Error(res.status);
+    const buf=await ac.decodeAudioData(await res.arrayBuffer());
+    return buffers[kind]={buf,gain:REC_GAIN,loop:[rec.start,rec.length]};
+  }
+  if(kind!=='pink'&&kind!=='groove')return null;
   const buf=kind==='pink'?makePink():await makeGroove();
-  return buffers[kind]={buf,gain:normalise(buf,kind==='pink'?.4:.5)};
+  return buffers[kind]={buf,gain:normalise(buf,kind==='pink'?.27:.7)};
+}
+/* Bands the current sound actually has energy in. Own files and the synth sources cover everything. */
+function inRange(f){
+  const r=loopInfo(st.source);
+  return !r||(f>=r.range[0]/1.45&&f<=r.range[1]*1.45);
+}
+function askable(){
+  const b=lvl().bands.filter(inRange);
+  return b.length>=2?b:lvl().bands;
 }
 function stopSource(){if(srcNode){try{srcNode.stop()}catch(e){}srcNode.disconnect();srcNode=null}}
 async function startSource(){
   initAudio();
   if(ac.state==='suspended')await ac.resume();
-  let b=await getBuffer(st.source);
+  const want=st.source;
+  $('source').disabled=true;
+  let b;
+  try{b=await getBuffer(want)}
+  catch(e){b=null;$('warn').hidden=false;$('warn').textContent='לא הצלחתי לטעון את הצליל הזה. בדוק את החיבור לאינטרנט.'}
+  finally{$('source').disabled=false}
+  if(want!==st.source)return;               // the user switched again while this one loaded
   if(!b){st.source='groove';$('source').value='groove';b=await getBuffer('groove')}
   stopSource();
   srcNode=ac.createBufferSource();srcNode.buffer=b.buf;srcNode.loop=true;
-  srcGain.gain.value=b.gain;srcNode.connect(srcGain);srcNode.start();
+  srcGain.gain.value=b.gain;srcNode.connect(srcGain);
+  if(b.loop){srcNode.loopStart=b.loop[0];srcNode.loopEnd=b.loop[0]+b.loop[1];srcNode.start(0,b.loop[0])}
+  else srcNode.start();
 }
 /* Push the current game state into the one peaking filter. A = gain 0 (flat). */
 function applyEq(){
@@ -337,8 +377,8 @@ function applyEq(){
 
 /* ---------- Rounds ---------- */
 function newRound(){
-  const L=lvl();let f;
-  do{f=L.bands[Math.floor(Math.random()*L.bands.length)]}while(f===st.target&&L.bands.length>1);
+  const L=lvl(),pool=askable();let f;
+  do{f=pool[Math.floor(Math.random()*pool.length)]}while(f===st.target&&pool.length>1);
   st.target=f;st.guess=null;st.aud=null;st.ab='B';st.phase='guess';
   st.dir=L.dir==='boost'?1:L.dir==='cut'?-1:(Math.random()<.5?1:-1);
   applyEq();render();
@@ -402,7 +442,8 @@ function render(){
   $('next').textContent=st.levelUp?'עולים רמה ←':'הבא ←';
   for(const b of $('bands').children){
     const f=+b.dataset.f,a=st.acc[f],bar=b.firstElementChild;
-    b.className='';
+    b.className=inRange(f)?'':'off';
+    b.title=inRange(f)?'':'בצליל הזה כמעט אין תוכן בתדר הזה, אז הוא לא יופיע כשאלה';
     if(quiz&&st.phase==='reveal'){
       if(f===st.target)b.classList.add('right');else if(f===st.guess)b.classList.add('wrong');
       if(f===st.aud)b.classList.add('sel');
@@ -479,6 +520,7 @@ function draw(){
 /* ---------- Wiring ---------- */
 LEVELS.forEach((L,i)=>{const o=document.createElement('option');o.value=i;o.textContent=`${i+1}. ${L.name}`;$('level').appendChild(o)});
 $('level').value=st.level;$('source').value=st.source;
+if(!$('source').value){st.source='groove';$('source').value='groove'}   // a recorded loop: set again once the list loads
 if(saved.auto===false)$('auto').checked=false;
 if(typeof saved.vol==='number')$('vol').value=saved.vol;
 for(const r of REGIONS){const li=document.createElement('li');li.innerHTML=`<b>${r[1]}</b> ${r[2]}`;$('guide').appendChild(li)}
@@ -508,8 +550,21 @@ document.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>{
 $('source').onchange=e=>{
   const v=e.target.value;
   if(v==='file'&&!buffers.file){e.target.value=st.source;$('file').click();return}
-  st.source=v;save();if(st.playing)startSource();
+  st.source=v;save();sourceChanged();
 };
+async function sourceChanged(){
+  if(st.playing){
+    await startSource();
+    if(st.mode==='quiz'&&st.phase==='guess'&&!inRange(st.target))newRound();
+  }
+  render();
+}
+fetch('audio/loops.json').then(r=>r.json()).then(list=>{
+  LOOPS=list;
+  for(const l of list){const o=document.createElement('option');o.value=l.id;o.textContent=l.name;$('recGroup').appendChild(o)}
+  if(loopInfo(saved.source)){st.source=saved.source;$('source').value=saved.source}
+  render();
+}).catch(()=>{$('recGroup').remove()});
 $('pickFile').onclick=()=>$('file').click();
 $('file').onchange=async e=>{
   const file=e.target.files[0];if(!file)return;
@@ -521,7 +576,7 @@ $('file').onchange=async e=>{
     $('fileName').textContent=file.name;
     $('source').querySelector('[value=file]').textContent='שיר משלי: '+file.name;
     st.source='file';$('source').value='file';
-    if(st.playing)startSource();
+    sourceChanged();
   }catch(err){$('fileName').textContent='לא הצלחתי לקרוא את הקובץ הזה. נסה mp3, wav או m4a.'}
   e.target.value='';
 };

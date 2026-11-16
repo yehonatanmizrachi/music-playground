@@ -1,0 +1,101 @@
+[
+ {
+  "id": "piano",
+  "name": "פסנתר",
+  "file": "piano.mp3",
+  "start": 0.5,
+  "length": 24.0,
+  "range": [
+   63,
+   4000
+  ]
+ },
+ {
+  "id": "guitar",
+  "name": "גיטרה אקוסטית",
+  "file": "guitar.mp3",
+  "start": 0.5,
+  "length": 20.869565,
+  "range": [
+   63,
+   4000
+  ]
+ },
+ {
+  "id": "drums",
+  "name": "תופים",
+  "file": "drums.mp3",
+  "start": 0.5,
+  "length": 10.0,
+  "range": [
+   31,
+   16000
+  ]
+ },
+ {
+  "id": "bass",
+  "name": "בס חשמלי",
+  "file": "bass.mp3",
+  "start": 0.5,
+  "length": 20.0,
+  "range": [
+   31,
+   2000
+  ]
+ },
+ {
+  "id": "strings",
+  "name": "כינור וקונטרבס",
+  "file": "strings.mp3",
+  "start": 0.5,
+  "length": 29.090909,
+  "range": [
+   31,
+   8000
+  ]
+ },
+ {
+  "id": "flute",
+  "name": "חליל ונבל",
+  "file": "flute.mp3",
+  "start": 0.5,
+  "length": 22.857143,
+  "range": [
+   63,
+   4000
+  ]
+ },
+ {
+  "id": "jazz",
+  "name": "ג׳אז: סקסופון, קונטרבס ופסנתר",
+  "file": "jazz.mp3",
+  "start": 0.5,
+  "length": 15.238095,
+  "range": [
+   31,
+   16000
+  ]
+ },
+ {
+  "id": "band",
+  "name": "להקה אקוסטית",
+  "file": "band.mp3",
+  "start": 0.5,
+  "length": 19.2,
+  "range": [
+   31,
+   16000
+  ]
+ },
+ {
+  "id": "organ",
+  "name": "עוגב",
+  "file": "organ.mp3",
+  "start": 0.5,
+  "length": 13.714286,
+  "range": [
+   125,
+   8000
+  ]
+ }
+]
