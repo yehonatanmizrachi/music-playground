@@ -8,6 +8,7 @@ A collection of small, browser-based music exercises. Plain static HTML: no buil
 | --- | --- | --- |
 | תווים בקצב (Sight-reading in tempo) | `exercises/sight-reading.html` | Read a note, fifth, or triad from the staff and play it on the piano before the beats run out. Pitch is detected through the microphone; an on-screen keyboard works as a fallback. |
 | דיאלוג בחשכה (Dialogue in the dark) | `exercises/dialogue-in-the-dark.html` | An English voice (Web Speech API) announces a note, fifth, triad, or one note per hand, and you find it on the piano by touch, with the screen blacked out. Same tempo and microphone engine as תווים בקצב. |
+| ציד תדרים (Frequency hunt) | `exercises/frequency-hunt.html` | EQ ear training. A loop plays (a synthesised band, pink noise, or your own audio file) with one EQ band boosted or cut; A/B against the clean source and pick the frequency. Eight levels from four wide regions to third-octave bands, plus a free-explore mode. |
 
 ## Structure
 
